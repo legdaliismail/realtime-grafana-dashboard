@@ -221,3 +221,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Fine-tuning: downloaded prices and trained models (large, can be re-created)
+finetune/data/
+models/*
+!models/.gitkeep

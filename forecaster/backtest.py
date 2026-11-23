@@ -58,6 +58,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--days", type=int, default=90, help="days of history to download (max 90)")
     parser.add_argument("--stride", type=int, default=fc.HORIZON_HOURS, help="hours between test forecasts")
+    parser.add_argument("--model", choices=["auto", "original", "fine-tuned"], default="auto",
+                        help="auto = the model the live forecaster uses")
     args = parser.parse_args()
     if not 2 <= args.days <= 90:
         parser.error("--days must be between 2 and 90")
@@ -71,8 +73,9 @@ def main() -> int:
               f"got {len(prices)} hours ({skipped} windows skipped for gaps).")
         return 1
 
-    print(f"Loading {fc.MODEL_NAME} ...", flush=True)
-    model = fc.load_model()
+    print("Loading the model ...", flush=True)
+    model, variant = fc.load_model({"auto": None, "original": False, "fine-tuned": True}[args.model])
+    print(f"Testing the {variant} {fc.MODEL_NAME}")
     forecasts = np.concatenate([fc.predict(model, contexts[i:i + BATCH]) for i in range(0, len(contexts), BATCH)])
     lower, median, upper = (forecasts[:, :, q] for q in range(3))
     current = contexts[:, -1:]  # price at the moment of each forecast
