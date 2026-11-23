@@ -1,0 +1,6 @@
+# CPU-only PyTorch: the default wheel bundles several GB of GPU libraries we don't need.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+chronos-forecasting==2.3.2
+prometheus_client==0.21.1
+requests==2.32.3
