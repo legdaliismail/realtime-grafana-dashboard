@@ -1,8 +1,11 @@
 """Code shared by the live forecaster and the backtest, so both behave identically:
-download price history, run Chronos-Bolt, turn the forecast into a signal."""
+download price history, pick and run the model, turn the forecast into a signal."""
 
+import json
+import logging
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import requests
@@ -11,6 +14,8 @@ from chronos import BaseChronosPipeline
 
 HISTORY_URL = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
 MODEL_NAME = os.getenv("MODEL_NAME", "amazon/chronos-bolt-small")
+# Folder made by finetune/train.py and finetune/evaluate.py. Empty = always use MODEL_NAME.
+FINETUNED_DIR = os.getenv("FINETUNED_MODEL_DIR", "").strip()
 API_KEY = os.getenv("COINGECKO_API_KEY", "").strip()
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
 
@@ -77,8 +82,40 @@ def live_context(points: list[tuple[float, float]]) -> np.ndarray:
     return prices
 
 
-def load_model():
-    return BaseChronosPipeline.from_pretrained(MODEL_NAME, device_map="cpu", dtype=torch.float32)
+def finetuned_path() -> Path | None:
+    """The fine-tuned model folder, but only if evaluate.py found it more accurate than MODEL_NAME."""
+    if not FINETUNED_DIR:
+        return None
+    path = Path(FINETUNED_DIR)
+    try:
+        result = json.loads((path / "evaluation.json").read_text(encoding="utf-8"))
+        won = result["use_finetuned"] is True and result["base_model"] == MODEL_NAME
+    except (OSError, ValueError, KeyError, TypeError):
+        return None  # not trained, or not evaluated yet
+    return path if won else None
+
+
+def _load(name: str):
+    return BaseChronosPipeline.from_pretrained(name, device_map="cpu", dtype=torch.float32)
+
+
+def load_model(finetuned: bool | None = None):
+    """Returns (model, variant), variant being "fine-tuned" or "original".
+
+    finetuned=None picks automatically; True/False forces one (used by the backtest)."""
+    path = finetuned_path()
+    if finetuned is True:
+        path = Path(FINETUNED_DIR)
+    elif finetuned is False:
+        path = None
+    if path is not None:
+        try:
+            return _load(str(path)), "fine-tuned"
+        except Exception:
+            if finetuned:
+                raise
+            logging.getLogger("crypto-forecaster").exception("Cannot load the fine-tuned model, using the original")
+    return _load(MODEL_NAME), "original"
 
 
 def predict(model, contexts: np.ndarray) -> np.ndarray:

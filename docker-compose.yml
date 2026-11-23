@@ -21,12 +21,15 @@ services:
     environment:
       FORECAST_INTERVAL_SECONDS: "600"
       MODEL_NAME: amazon/chronos-bolt-small
+      # Used instead of MODEL_NAME only if finetune/evaluate.py found it more accurate.
+      FINETUNED_MODEL_DIR: /models/btc-chronos-bolt-small
       # Predicted moves smaller than this (in %) count as "flat".
       SIGNAL_THRESHOLD_PERCENT: "0.25"
       COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
     volumes:
       # Keeps the downloaded model so restarts don't fetch it again.
       - model-cache:/home/app/.cache/huggingface
+      - ./models:/models:ro
     ports:
       - "8001:8001"
     healthcheck:

@@ -12,7 +12,8 @@ CoinGecko history ──(every 10 min)──> forecaster :8001/metrics ──(sc
 ```
 
 The **forecaster** predicts the next 6 hours of the Bitcoin price with Amazon's
-[Chronos-Bolt](https://huggingface.co/amazon/chronos-bolt-small) model, on the CPU.
+[Chronos-Bolt](https://huggingface.co/amazon/chronos-bolt-small) model, on the CPU. It can use a
+version [fine-tuned on Bitcoin](#fine-tuning), but only if that one proved more accurate.
 
 ## Run it
 
@@ -58,6 +59,7 @@ forecast started from.
 | `crypto_forecast_price_lower_usd{...}` / `crypto_forecast_price_upper_usd{...}` | Bounds of the 80% range |
 | `crypto_forecast_change_percent{coin,symbol}` | Predicted change over 6 hours, % |
 | `crypto_forecast_signal{coin,symbol}` | `1` up, `0` flat, `-1` down |
+| `crypto_forecast_model_info{model,variant}` | Model in use: `variant` is `fine-tuned` or `original` (value is always `1`) |
 | `crypto_forecast_up` | `1` if the last forecast attempt worked, `0` if not |
 | `crypto_forecast_last_success_timestamp_seconds` | When the last forecast was made |
 | `crypto_forecast_errors_total{reason}` | Failed attempts |
@@ -76,19 +78,45 @@ This replays the last 90 days: it shows the model 30 days of hourly prices, lets
 6 hours, compares with what happened, and repeats every 6 hours. It reports MAE (average
 error in dollars), the % error, and a baseline that always says "the price won't change".
 
-Result for 2026-09-24 to 2026-11-23 (239 forecasts, `chronos-bolt-small`):
+Add `--model original` or `--model fine-tuned` to test one of them; the default is the one in use.
 
-| Ahead | Model MAE | Model error | "No change" MAE | "No change" error | Price inside range |
-|---|---|---|---|---|---|
-| 1h | $199 | 0.26% | $176 | 0.23% | 91% |
-| 3h | $324 | 0.43% | $308 | 0.40% | 87% |
-| 6h | $579 | 0.77% | $554 | 0.74% | 77% |
-| Average of 1h-6h | $366 | 0.49% | $348 | 0.46% | 86% |
+The backtest depends on which hour it starts from, so the table below comes from
+`finetune/evaluate.py`, which forecasts from every hour.
 
-**The model did not beat "the price won't change" (5.2% higher average error), and the UP/DOWN
-signals were about as good as a coin flip** (UP right 33% of 18 times, DOWN right 54% of 41 times).
-Short-term Bitcoin prices are close to random. The most useful output is the range, which is meant
-to hold the real price 80% of the time. This is a demo, not financial advice.
+| Average of 1h-6h ahead | Original | Fine-tuned | "No change" |
+|---|---|---|---|
+| Binance, 2025-11-23 to 2026-11-23 (8,755 forecasts): MAE | $440.2 | $428.6 | **$408.3** |
+| same, % error | 0.591% | 0.576% | **0.549%** |
+| CoinGecko, last 90 days (1,435 forecasts): MAE | $420.4 | $409.9 | **$397.4** |
+| same, % error | 0.564% | 0.550% | **0.532%** |
+
+**The fine-tuned model is about 2.5% better than the original, but still about 3-5% worse than simply
+saying "the price won't change".** The UP/DOWN signals were no better than a coin flip. Short-term
+Bitcoin prices are close to random. The most useful output is the range: it is meant to hold the
+real price 80% of the time, and the fine-tuned model's range held it 79% of the time on the Binance
+test year. This is a demo, not financial advice.
+
+## Fine-tuning
+
+Runs outside Docker, with Python 3.12, on an NVIDIA GPU (or, slowly, on the CPU):
+
+```bash
+python -m venv ~/venvs/btc-finetune          # keep it out of synced folders, it is several GB
+source ~/venvs/btc-finetune/Scripts/activate # Git Bash; on Linux/macOS: bin/activate
+pip install -r finetune/requirements.txt
+cd finetune
+python download_data.py    # hourly BTCUSDT since 2017 from Binance's public API
+python train.py            # about 15 minutes on a GTX 1660 Ti, uses 1.5 GB of GPU memory
+python evaluate.py         # compares the models and decides which one is used
+docker compose restart forecaster
+```
+
+Data is split by time: the last 12 months are the test period, which `train.py` drops before doing
+anything; the 6 months before that are for choosing settings; everything older is for training.
+The model goes to `models/` (not in git). `evaluate.py` allows its use only if, against the original,
+it has lower MAE and lower % error on both the Binance test period and CoinGecko, and the Binance gap
+is larger than luck (95% bootstrap interval). Otherwise, or if the files are missing or damaged, the
+forecaster uses the original. Retraining later moves the test period forward.
 
 ## Configuration
 
@@ -101,7 +129,7 @@ Set these in your shell or in a `.env` file next to `docker-compose.yml`:
 | `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana admin password |
 
 Forecaster settings are in `docker-compose.yml`: `FORECAST_INTERVAL_SECONDS` (600), `MODEL_NAME`
-(`amazon/chronos-bolt-small`) and `SIGNAL_THRESHOLD_PERCENT` (0.25; smaller predicted moves count as flat).
+(`amazon/chronos-bolt-small`), `FINETUNED_MODEL_DIR` (empty = always use `MODEL_NAME`) and `SIGNAL_THRESHOLD_PERCENT` (0.25; smaller predicted moves count as flat).
 
 The polling interval is `FETCH_INTERVAL_SECONDS` in `docker-compose.yml`. Don't go much
 below 15s without an API key, or CoinGecko will rate-limit you.
@@ -122,6 +150,8 @@ Dockerfile                      Image for the exporter
 forecaster/forecaster.py        Forecast service (Chronos-Bolt -> Prometheus metrics)
 forecaster/forecasting.py       Shared code: price history, model, signal
 forecaster/backtest.py          Accuracy test on past data
+finetune/                       Download data, fine-tune, compare models
+models/                         Fine-tuned model (created by finetune/, not in git)
 docker-compose.yml              Exporter + forecaster + Prometheus + Grafana
 prometheus/prometheus.yml       Scrape config
 grafana/provisioning/           Auto-provisioned data source and dashboard provider

@@ -35,6 +35,7 @@ PRICE = Gauge("crypto_forecast_price_usd", "Predicted price (median) this far ah
 LOWER = Gauge("crypto_forecast_price_lower_usd", "Lower bound of the 80% forecast range", H_LABELS)
 UPPER = Gauge("crypto_forecast_price_upper_usd", "Upper bound of the 80% forecast range", H_LABELS)
 CHANGE = Gauge("crypto_forecast_change_percent", "Predicted price change over the next 6 hours, in percent", LABELS)
+MODEL_INFO = Gauge("crypto_forecast_model_info", "Which model is in use (value is always 1)", ["model", "variant"])
 SIGNAL = Gauge("crypto_forecast_signal", "Predicted direction over 6 hours: 1 up, 0 flat, -1 down", LABELS)
 
 UP = Gauge("crypto_forecast_up", "1 if the last forecast attempt succeeded, 0 otherwise")
@@ -110,9 +111,10 @@ def main() -> None:
 
     UP.set(0)
     start_http_server(METRICS_PORT)
-    log.info("Metrics on :%d/metrics; loading %s (first start downloads it)", METRICS_PORT, fc.MODEL_NAME)
-    model = fc.load_model()
-    log.info("Model ready, forecasting every %.0fs", FORECAST_INTERVAL)
+    log.info("Metrics on :%d/metrics; loading the model (first start downloads it)", METRICS_PORT)
+    model, variant = fc.load_model()
+    MODEL_INFO.labels(fc.MODEL_NAME, variant).set(1)
+    log.info("Using the %s %s model, forecasting every %.0fs", variant, fc.MODEL_NAME, FORECAST_INTERVAL)
 
     last_success = None
     while not stop.is_set():
