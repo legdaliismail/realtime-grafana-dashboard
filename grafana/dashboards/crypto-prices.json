@@ -4,7 +4,7 @@
   "tags": ["crypto", "coingecko"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "15s",
@@ -180,10 +180,137 @@
       }
     },
     {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Bitcoin: actual vs predicted, next 6 hours with 80% range",
+      "description": "Orange: the real price. Blue with shaded area: the latest forecast for the next 6 hours and its 80% range. Dashed blue: what was predicted 6 hours before each moment; compare it with orange to judge past forecasts (appears after 6 hours of running). Each hourly forecast is shifted forward to the time it is for, which is why the chart extends into the future. Not financial advice.",
+      "gridPos": { "x": 0, "y": 15, "w": 18, "h": 12 },
+      "timeFrom": "+12h",
+      "timeShift": "6h",
+      "hideTimeOverride": true,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "max by (coin) (crypto_price_usd{coin=\"bitcoin\"})", "legendFormat": "Actual" },
+        { "refId": "B", "expr": "(max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"0h\"}) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"0h\"} offset -5m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 1h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 55m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 2h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 115m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 3h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 175m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 4h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 235m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 5h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 295m)) or (max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 6h) unless max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 355m))", "legendFormat": "Forecast" },
+        { "refId": "C", "expr": "(max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"0h\"}) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"0h\"} offset -5m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 1h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 55m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 2h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 115m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 3h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 175m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 4h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 235m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 5h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 295m)) or (max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 6h) unless max by (coin) (crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 355m))", "legendFormat": "Upper bound" },
+        { "refId": "D", "expr": "(max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"0h\"}) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"0h\"} offset -5m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 1h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"1h\"} offset 55m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 2h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"2h\"} offset 115m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 3h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"3h\"} offset 175m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 4h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"4h\"} offset 235m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 5h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"5h\"} offset 295m)) or (max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 6h) unless max by (coin) (crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 355m))", "legendFormat": "Lower bound" },
+        { "refId": "E", "expr": "max by (coin) (crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"6h\"} offset 6h) and max by (coin) (crypto_price_usd{coin=\"bitcoin\"})", "legendFormat": "Predicted 6h earlier" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "custom": { "lineWidth": 2, "fillOpacity": 0, "spanNulls": 4200000, "showPoints": "never" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Actual" }, "properties": [{ "id": "color", "value": {"mode": "fixed", "fixedColor": "orange"} }] },
+          { "matcher": { "id": "byName", "options": "Forecast" }, "properties": [{ "id": "color", "value": {"mode": "fixed", "fixedColor": "blue"} }] },
+          { "matcher": { "id": "byName", "options": "Upper bound" }, "properties": [{ "id": "color", "value": {"mode": "fixed", "fixedColor": "blue"} }, { "id": "custom.lineWidth", "value": 0 }, { "id": "custom.fillBelowTo", "value": "Lower bound" }, { "id": "custom.fillOpacity", "value": 18 }] },
+          { "matcher": { "id": "byName", "options": "Lower bound" }, "properties": [{ "id": "color", "value": {"mode": "fixed", "fixedColor": "blue"} }, { "id": "custom.lineWidth", "value": 0 }] },
+          { "matcher": { "id": "byName", "options": "Predicted 6h earlier" }, "properties": [{ "id": "color", "value": {"mode": "fixed", "fixedColor": "blue"} }, { "id": "custom.lineWidth", "value": 1 }, { "id": "custom.lineStyle", "value": {"fill": "dash", "dash": [6, 6]} }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "BTC signal (next 6h)",
+      "description": "UP or DOWN when the predicted 6-hour move is bigger than 0.25%, otherwise FLAT. In backtests the direction was about as good as a coin flip. Not financial advice.",
+      "gridPos": { "x": 18, "y": 15, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "crypto_forecast_signal{coin=\"bitcoin\"}", "legendFormat": "signal", "instant": true, "range": false }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": { "text": "▼ DOWN", "color": "red" },
+                "0": { "text": "▬ FLAT", "color": "#6E7681" },
+                "1": { "text": "▲ UP", "color": "green" }
+              }
+            }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#6E7681", "value": null }] },
+          "noValue": "NO DATA"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Predicted price in 6h",
+      "gridPos": { "x": 18, "y": 19, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "crypto_forecast_price_usd{coin=\"bitcoin\",horizon=\"6h\"}", "legendFormat": "Price", "instant": true, "range": false },
+        { "refId": "B", "expr": "crypto_forecast_change_percent{coin=\"bitcoin\"}", "legendFormat": "Change", "instant": true, "range": false }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "noValue": "NO DATA"
+        },
+        "overrides": [{ "matcher": { "id": "byName", "options": "Change" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "decimals", "value": 2 }] }]
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "vertical"
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "80% range in 6h",
+      "gridPos": { "x": 18, "y": 23, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "crypto_forecast_price_lower_usd{coin=\"bitcoin\",horizon=\"6h\"}", "legendFormat": "Low", "instant": true, "range": false },
+        { "refId": "B", "expr": "crypto_forecast_price_upper_usd{coin=\"bitcoin\",horizon=\"6h\"}", "legendFormat": "High", "instant": true, "range": false }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "noValue": "NO DATA"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "vertical"
+      }
+    },
+    {
       "id": 7,
       "type": "timeseries",
       "title": "24h change (%)",
-      "gridPos": { "x": 0, "y": 15, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 27, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "expr": "crypto_price_change_24h_percent", "legendFormat": "{{symbol}}" }
@@ -221,7 +348,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "Market cap (USD)",
-      "gridPos": { "x": 12, "y": 15, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 27, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "expr": "crypto_market_cap_usd", "legendFormat": "{{symbol}}" }
@@ -246,7 +373,7 @@
       "id": 9,
       "type": "timeseries",
       "title": "Exporter health: fetch errors (per 5m) and API latency",
-      "gridPos": { "x": 0, "y": 23, "w": 24, "h": 7 },
+      "gridPos": { "x": 0, "y": 35, "w": 24, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "expr": "sum by (reason) (increase(coingecko_fetch_errors_total[5m]))", "legendFormat": "errors: {{reason}}" },

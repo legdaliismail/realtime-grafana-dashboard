@@ -14,6 +14,28 @@ services:
       timeout: 5s
       retries: 3
 
+  forecaster:
+    build: ./forecaster
+    container_name: crypto-forecaster
+    restart: unless-stopped
+    environment:
+      FORECAST_INTERVAL_SECONDS: "600"
+      MODEL_NAME: amazon/chronos-bolt-small
+      # Predicted moves smaller than this (in %) count as "flat".
+      SIGNAL_THRESHOLD_PERCENT: "0.25"
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+    volumes:
+      # Keeps the downloaded model so restarts don't fetch it again.
+      - model-cache:/home/app/.cache/huggingface
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/metrics', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
   prometheus:
     image: prom/prometheus:v2.55.1
     container_name: prometheus
@@ -29,6 +51,7 @@ services:
       - "9090:9090"
     depends_on:
       - exporter
+      - forecaster
 
   grafana:
     image: grafana/grafana:11.3.1
@@ -54,3 +77,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  model-cache:
